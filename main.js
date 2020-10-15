@@ -1,19 +1,8 @@
 const puppeteer = require('puppeteer');
 
-(async function main() {
+async function main(settings) {
 //https://wenogk.github.io/comlab-assignment-1/
 //https://nyuad.nyu.edu/en/
-const settings = {
-
-    url: "https://wired.com",
-    getScriptSource : false,
-    colors: {
-      defaultEventBorderColor : "green",
-      loadEventBorderColor: "red",
-      clickEventBorderColor: "green",
-    }
-
-}
 
 function deInterleaveArray(arr) {
 
@@ -210,4 +199,18 @@ function deInterleaveArray(arr) {
   } catch (err) {
     console.error(err);
   }
-})();
+}
+
+const settings = {
+
+    url: "https://wired.com",
+    getScriptSource : false,
+    colors: {
+      defaultEventBorderColor : "green",
+      loadEventBorderColor: "red",
+      clickEventBorderColor: "blue",
+    }
+
+}
+
+main(settings)
