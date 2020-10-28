@@ -55,7 +55,13 @@ function deInterleaveArray(arr) {
       for (let i = 0; i < completeListenerObject.listeners.length; i ++) {
 
         node = completeListenerObject.listeners[i]
+        const resolvedNode = (await cdp.send('DOM.resolveNode', {
 
+            backendNodeId: node.backendNodeId,
+
+          }))
+        console.log(resolvedNode)
+        //
           try {
 
             //node.getBoundingClientRect()
@@ -176,7 +182,7 @@ function deInterleaveArray(arr) {
       counterObj = {}
       finalArr.forEach(e => {
 
-        console.log(JSON.stringify(e,null, 2))
+        //console.log(JSON.stringify(e,null, 2))
         if(counterObj[e.type] == null) {
 
           counterObj[e.type] = 1
@@ -203,7 +209,7 @@ function deInterleaveArray(arr) {
 
 const settings = {
 
-    url: "https://wired.com",
+    url: "https://www.salesforce.com/eu/?ir=1",
     getScriptSource : false,
     colors: {
       defaultEventBorderColor : "green",
