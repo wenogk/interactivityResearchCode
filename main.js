@@ -3,6 +3,7 @@ const puppeteer = require('puppeteer');
 async function main(settings) {
 //https://wenogk.github.io/comlab-assignment-1/
 //https://nyuad.nyu.edu/en/
+  let COMPUTED_INTERACTIVE_NODES = []
 
 function deInterleaveArray(arr) {
 
@@ -63,32 +64,18 @@ function deInterleaveArray(arr) {
         //  console.log(resolvedNode)
         
         //
-          try {
+          
 
-            //node.getBoundingClientRect()
-            const boxMod = (await cdp.send('DOM.getBoxModel', {
 
-              backendNodeId: node.backendNodeId,
-
-            }))
-            //print(await cdp.send('DOM.highlightNode'))
-            
-            completeListenerObject.listeners[i]["locationInfo"] = boxMod.model
-            
-
-          } catch {
-
-            completeListenerObject.listeners[i]["locationInfo"] = null
-            node = null
-
-          }
           //get the description of the node element
           try {
 
           const nodeDescription = (await cdp.send('DOM.describeNode', {
             backendNodeId: node.backendNodeId,
           }))
+          
 
+//following function is to get xpath and is from https://stackoverflow.com/a/5178132
           let functionCode = `
           function() {
             elm = this;
@@ -119,13 +106,61 @@ function deInterleaveArray(arr) {
         }
           `
           //console.log("OBJECT ID " +(resolvedNode.object.objectId))
-          nodeDescription.node.attributes = deInterleaveArray(nodeDescription.node.attributes)
           completeListenerObject.listeners[i]["indentifierInfo"] = nodeDescription.node
-          let callXpathFunction = (await cdp.send('Runtime.callFunctionOn', {
-            functionDeclaration : functionCode,
+
+          try {
+            nodeDescription.node.attributes = deInterleaveArray(nodeDescription.node.attributes)
+            let callXpathFunction = (await cdp.send('Runtime.callFunctionOn', {
+              functionDeclaration : functionCode,
+              objectId: resolvedNode.object.objectId,
+            })) 
+            completeListenerObject.listeners[i]['xpathInfo'] = callXpathFunction.result.value
+          } catch(e) {
+            console.log(e)
+          }
+
+          //start location info
+          try {
+
+            //node.getBoundingClientRect()
+            //function to get bounding client rect
+            let getBoundingClientRectFunction = `
+            function() {
+              let rect = this.getBoundingClientRect()
+              result = {}
+              for (var key in rect) {
+                if(typeof rect[key] !== 'function') {
+                  result[key] = rect[key]
+                }
+              }
+              return JSON.stringify(result)
+            }
+            `
+            /*
+            const boxMod = (await cdp.send('DOM.getBoxModel', {
+
+              backendNodeId: node.backendNodeId,
+
+            }))
+            //print(await cdp.send('DOM.highlightNode'))
+            
+            completeListenerObject.listeners[i]["locationInfo"] = boxMod.model
+            */
+           let callGetBoundingClientRectFunction = (await cdp.send('Runtime.callFunctionOn', {
+            functionDeclaration : getBoundingClientRectFunction,
             objectId: resolvedNode.object.objectId,
           })) 
-          
+
+          completeListenerObject.listeners[i]["locationInfo"] = JSON.parse(callGetBoundingClientRectFunction.result.value)
+
+          } catch(e) {
+            console.log("bixmod error" + e)
+            completeListenerObject.listeners[i]["locationInfo"] = null
+            node = null
+
+          }
+          //end location info
+         
           
         } catch (e) {
           //console.log(e)
@@ -163,29 +198,11 @@ function deInterleaveArray(arr) {
                 value: "border: dashed " + borderColor + ";"
               })
            
-            await cdp.send('DOM.highlightNode', {
-                highlightConfig: {
-                    showInfo : true,
-                    showRulers: true,
-                    showExtensionLines: true,
-                    borderColor: {r: 255,
-                        g: 0,
-                        b:0,
-                        a: 1},
-                    contentColor: {
-                        r: 255,
-                        g: 0,
-                        b:0,
-                        a: 1
-                    }
-                },
-                backendNodeId: node.backendNodeId,
-              })
-             
-              
+           
+
      }  catch (err) {
 
-        console.error(err);
+        //console.error(err);
 
       }
 
@@ -208,9 +225,13 @@ function deInterleaveArray(arr) {
       }
 
       //e.type == "click" && && e.locationInfo.width > 0 && e.locationInfo.height > 0
-      const finalArr = completeListenerObject.listeners.filter(e => {
 
-        return ( e.locationInfo != null && e.locationInfo.width > 0 && e.locationInfo.height > 0)
+      const finalArr = completeListenerObject.listeners.filter(e => {
+        if(e.locationInfo.width == 0 || e.locationInfo.height == 0) {
+          return false;
+        }
+
+        return ( e.locationInfo != null && e.type == "click")
 
        });
 
@@ -232,7 +253,7 @@ function deInterleaveArray(arr) {
       });
 
       //console.log(JSON.stringify(counterObj,null, 2))
-      //console.log(JSON.stringify(completeListenerObject, null, 2));
+      console.log(JSON.stringify(finalArr, null, 2));
     
 
     await cdp.send('Runtime.releaseObjectGroup', { objectGroup: 'romeno' });
