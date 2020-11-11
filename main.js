@@ -70,9 +70,9 @@ function deInterleaveArray(arr) {
           //get the description of the node element
           try {
 
-          const nodeDescription = (await cdp.send('DOM.describeNode', {
-            backendNodeId: node.backendNodeId,
-          }))
+            const nodeDescription = (await cdp.send('DOM.describeNode', {
+              backendNodeId: node.backendNodeId,
+            }))
           
 
 //following function is to get xpath and is from https://stackoverflow.com/a/5178132
@@ -180,15 +180,23 @@ function deInterleaveArray(arr) {
             //set border color based on event listener type
             
             let borderColor = settings.colors.defaultEventBorderColor
-
-            if(node.type == "click") {
-
-              borderColor = settings.colors.clickEventBorderColor
+            let settingHrefCheck = true
+            try {
+            let hrefCheck = (nodeDescription.node.attributes["href"] != null)
+            settingHrefCheck = ((settings.ignoreNormalLinks) || !hrefCheck);
+            } catch {
+              settingHrefCheck = true;
+            }
+            if(node.type == "click") { // 
+              if(!settingHrefCheck) {
+                borderColor = settings.colors.clickEventBorderColor
+              } else {
+                borderColor = "red"
+              }
+              
 
             } else if(node.type == "load") {
-
               borderColor = settings.colors.loadEventBorderColor
-
             }
 
             //set css style (should be changed to draw border over)
@@ -202,7 +210,7 @@ function deInterleaveArray(arr) {
 
      }  catch (err) {
 
-        //console.error(err);
+        console.error(err);
 
       }
 
@@ -231,13 +239,16 @@ function deInterleaveArray(arr) {
           return false;
         }
 
-        return ( e.locationInfo != null && e.type == "click")
+        let hrefCheck = (e.indentifierInfo.attributes["href"] != null)
+        let settingHrefCheck = ((settings.ignoreNormalLinks) || !hrefCheck);
+
+        return ( e.locationInfo != null && e.type == "click" && settingHrefCheck)
 
        });
 
       //count each type of event listener and put them in an object
       counterObj = {}
-      finalArr.forEach(e => {
+      completeListenerObject.listeners.forEach(e => {
 
         //console.log(JSON.stringify(e,null, 2))
         if(counterObj[e.type] == null) {
@@ -252,7 +263,7 @@ function deInterleaveArray(arr) {
 
       });
 
-      //console.log(JSON.stringify(counterObj,null, 2))
+      console.log(JSON.stringify(counterObj,null, 2))
       console.log(JSON.stringify(finalArr, null, 2));
     
 
@@ -266,14 +277,14 @@ function deInterleaveArray(arr) {
 
 const settings = {
 
-    url: "https://www.salesforce.com/eu/?ir=1",
+    url: "https://www.unicef.org/",
     getScriptSource : false,
     colors: {
       defaultEventBorderColor : "green",
       loadEventBorderColor: "red",
       clickEventBorderColor: "blue",
-    }
-
+    },
+    ignoreNormalLinks : true
 }
 
 main(settings)
