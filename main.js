@@ -1,5 +1,5 @@
 const puppeteer = require('puppeteer');
-
+var pure_js_functions = require('./js_pure_functions');
 async function main(settings) {
 //https://wenogk.github.io/comlab-assignment-1/
 //https://nyuad.nyu.edu/en/
@@ -76,35 +76,7 @@ function deInterleaveArray(arr) {
           
 
 //following function is to get xpath and is from https://stackoverflow.com/a/5178132
-          let functionCode = `
-          function() {
-            elm = this;
-            var allNodes = document.getElementsByTagName('*'); 
-            for (var segs = []; elm && elm.nodeType == 1; elm = elm.parentNode) 
-            { 
-                if (elm.hasAttribute('id')) { 
-                        var uniqueIdCount = 0; 
-                        for (var n=0;n < allNodes.length;n++) { 
-                            if (allNodes[n].hasAttribute('id') && allNodes[n].id == elm.id) uniqueIdCount++; 
-                            if (uniqueIdCount > 1) break; 
-                        }; 
-                        if ( uniqueIdCount == 1) { 
-                            segs.unshift('id("' + elm.getAttribute('id') + '")'); 
-                            return segs.join('/'); 
-                        } else { 
-                            segs.unshift(elm.localName.toLowerCase() + '[@id="' + elm.getAttribute('id') + '"]'); 
-                        } 
-                } else if (elm.hasAttribute('class')) { 
-                    segs.unshift(elm.localName.toLowerCase() + '[@class="' + elm.getAttribute('class') + '"]'); 
-                } else { 
-                    for (i = 1, sib = elm.previousSibling; sib; sib = sib.previousSibling) { 
-                        if (sib.localName == elm.localName)  i++; }; 
-                        segs.unshift(elm.localName.toLowerCase() + '[' + i + ']'); 
-                }; 
-            }; 
-            return segs.length ? '/' + segs.join('/') : null;
-        }
-          `
+          let functionCode = pure_js_functions.getXpathFunction
           //console.log("OBJECT ID " +(resolvedNode.object.objectId))
           completeListenerObject.listeners[i]["indentifierInfo"] = nodeDescription.node
 
