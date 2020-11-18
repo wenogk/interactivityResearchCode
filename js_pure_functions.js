@@ -28,7 +28,22 @@ function() {
 }
 `
 
-
+const insertMarkerElementAndReturnRect = `
+function() {
+    let rect = this.getBoundingClientRect()
+    result = {}
+    for (var key in rect) {
+      if(typeof rect[key] !== 'function') {
+        result[key] = rect[key]
+      }
+    }
+    
+    document.body.innerHTML += '<div style="position:absolute;width:' + result.width + ';height:' + result.height + ';top:' + result.top + ';left:' + result.left + ';opacity:0.3;z-index:100;background:green;"></div>';
+    return JSON.stringify(result);
+  }
+`
+//
 module.exports = {
-    getXpathFunction
+    getXpathFunction,
+    insertMarkerElementAndReturnRect
 };

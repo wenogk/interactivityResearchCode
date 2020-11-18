@@ -4,7 +4,10 @@ async function main(settings) {
 //https://wenogk.github.io/comlab-assignment-1/
 //https://nyuad.nyu.edu/en/
   let COMPUTED_INTERACTIVE_NODES = []
-
+ let availableColors = ["pink","purple","yellow","orange","cyan","teal","mediumpurple","maroon","brown","palegreen","coral","gold","red","crimson"]
+ let eventColors = {
+   "click" : "blue"
+ }
 function deInterleaveArray(arr) {
 
     //This function turns interleaved attribute array sent from chrome dev tools to an object of named attributes and values
@@ -36,7 +39,7 @@ function deInterleaveArray(arr) {
     
     const cdp = await page.target().createCDPSession();
 
-      await page.screenshot({path: `screenshot-1.png`});
+      
 
     const nodeObject = (await cdp.send('Runtime.evaluate', {
 
@@ -93,9 +96,6 @@ function deInterleaveArray(arr) {
 
           //start location info
           try {
-
-            //node.getBoundingClientRect()
-            //function to get bounding client rect
             let getBoundingClientRectFunction = `
             function() {
               let rect = this.getBoundingClientRect()
@@ -108,22 +108,15 @@ function deInterleaveArray(arr) {
               return JSON.stringify(result)
             }
             `
-            /*
-            const boxMod = (await cdp.send('DOM.getBoxModel', {
 
-              backendNodeId: node.backendNodeId,
-
-            }))
-            //print(await cdp.send('DOM.highlightNode'))
-            
-            completeListenerObject.listeners[i]["locationInfo"] = boxMod.model
-            */
            let callGetBoundingClientRectFunction = (await cdp.send('Runtime.callFunctionOn', {
             functionDeclaration : getBoundingClientRectFunction,
             objectId: resolvedNode.object.objectId,
           })) 
 
           completeListenerObject.listeners[i]["locationInfo"] = JSON.parse(callGetBoundingClientRectFunction.result.value)
+          clientRectObj = JSON.parse(callGetBoundingClientRectFunction.result.value)
+          
 
           } catch(e) {
             console.log("bixmod error" + e)
@@ -132,10 +125,13 @@ function deInterleaveArray(arr) {
 
           }
           //end location info
+          
+          //insertElement
          
           
+          
         } catch (e) {
-          //console.log(e)
+          console.log(e)
             completeListenerObject.listeners[i]["indentifierInfo"] = null
             
         }
@@ -159,24 +155,33 @@ function deInterleaveArray(arr) {
             } catch {
               settingHrefCheck = true;
             }
-            if(node.type == "click") { // 
+
+            if(eventColors[node.type] != null) { // 
               if(!settingHrefCheck) {
-                borderColor = settings.colors.clickEventBorderColor
+                borderColor = eventColors[node.type]
               } else {
-                borderColor = "red"
+                borderColor = eventColors[node.type]
               }
               
 
-            } else if(node.type == "load") {
-              borderColor = settings.colors.loadEventBorderColor
+            } else {
+              let newColor = "green"
+              if(availableColors.length > 0) {
+                newColor = availableColors.pop()
+              }
+              eventColors[node.type] = newColor
+              borderColor = eventColors[node.type]
             }
 
             //set css style (should be changed to draw border over)
-            await cdp.send('DOM.setAttributeValue', {
+            if(settings.cdpHighlight) {
+              await cdp.send('DOM.setAttributeValue', {
                 nodeId: nodeIdarray.nodeIds[0],
                 name: "style",
                 value: "border: dashed " + borderColor + ";"
               })
+            }
+            
            
            
 
@@ -203,10 +208,13 @@ function deInterleaveArray(arr) {
           }
           
       }
-
+      await page.screenshot({path: `screenshot-1.png`, fullPage: true});
       //e.type == "click" && && e.locationInfo.width > 0 && e.locationInfo.height > 0
 
       const finalArr = completeListenerObject.listeners.filter(e => {
+        if(e.type != "bbc") {
+          return false
+        } else {return true;}
         if(e.locationInfo.width == 0 || e.locationInfo.height == 0) {
           return false;
         }
@@ -217,11 +225,16 @@ function deInterleaveArray(arr) {
         return ( e.locationInfo != null && e.type == "click" && settingHrefCheck)
 
        });
+       //test
+       
+       
+        
+
 
       //count each type of event listener and put them in an object
       counterObj = {}
-      completeListenerObject.listeners.forEach(e => {
-
+      completeListenerObject.listeners.forEach( (e) => {
+        
         //console.log(JSON.stringify(e,null, 2))
         if(counterObj[e.type] == null) {
 
@@ -234,7 +247,7 @@ function deInterleaveArray(arr) {
         }
 
       });
-
+      console.log(JSON.stringify(eventColors,null, 2))
       console.log(JSON.stringify(counterObj,null, 2))
       console.log(JSON.stringify(finalArr, null, 2));
     
@@ -242,21 +255,40 @@ function deInterleaveArray(arr) {
     await cdp.send('Runtime.releaseObjectGroup', { objectGroup: 'romeno' });
 
     //await browser.close();
+    if(settings.puppeteerManualHighlight) {
+      try {
+        await page.reload({ waitUntil: ["networkidle0", "domcontentloaded"] });
+        await page.evaluate((completeListenerObject) => {
+          completeListenerObject.listeners.forEach((e) => {
+          clientRectObj = e["locationInfo"]
+          result = clientRectObj
+          console.log(result)
+          //document.body.innerHTML +='<h1 style ="background: green;">hvjhvjhvjvjhdsadsvjhv</h1>';
+         document.body.innerHTML += '<div style="position:absolute;width:' + result.width + 'px;height:' + result.height + 'px;top:' + result.top + 'px;left:' + result.left + 'px;border-style: solid;border-color: black;z-index:99999999;"  onclick="alert(\' ' + e.type +  '\')"></div>';
+        
+        });
+        }, completeListenerObject)
+      } catch(e) {
+      console.log("insert element err" + e)
+    }
+     }
   } catch (err) {
     console.error(err);
   }
+  
 }
 
 const settings = {
-
-    url: "https://www.unicef.org/",
+    url: "http://www.bbc.com",
     getScriptSource : false,
     colors: {
       defaultEventBorderColor : "green",
       loadEventBorderColor: "red",
       clickEventBorderColor: "blue",
     },
-    ignoreNormalLinks : true
+    ignoreNormalLinks : true,
+    cdpHighlight: true,
+    puppeteerManualHighlight : false
 }
 
 main(settings)
