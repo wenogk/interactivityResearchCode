@@ -4,9 +4,11 @@ const readline = require('readline');
 const fs = require('fs');
 
 var pure_js_functions = require('./js_pure_functions');
+let nativeEvents = ['click',' dblclick','mousedown','mouseup','mouseover','mousemove','mouseout','dragstart','drag','dragenter','dragleave','dragover','drop','dragend','keydown','keypress','keyup','load','unload','abort','error','resize','scroll','select','change','submit','reset','focus','blur','focusin','focusout','DOMActivate','DOMSubtreeModified','DOMNodeInserted','DOMNodeRemoved','DOMNodeRemovedFromDocument','DOMNodeInsertedIntoDocument','DOMAttrModified','DOMCharacterDataModified','loadstart','progress','error','abort','load','loadend']
+
 async function main(settings, callback) {
 
-  const db = new sqlite3.Database('./data2.db', (err) => {
+  const db = new sqlite3.Database('./data.sqlite', (err) => {
     if (err) {
         console.error(err.message);
     }
@@ -16,7 +18,7 @@ async function main(settings, callback) {
 // db.serialize let us run sqlite operations in serial order
 db.serialize(() => {
     // 1rst operation (run create table statement)
-    db.run('CREATE TABLE IF NOT EXISTS AlexaData(id INTEGER PRIMARY KEY, url text, type text, xpath text, location text, timeRecorded datetime)', (err) => {
+    db.run('CREATE TABLE IF NOT EXISTS AlexaData(id INTEGER PRIMARY KEY, url text, type text, xpath text, location text, timeRecorded datetime, nativeEvent integer)', (err) => {
         if (err) {
             console.log(err);
             throw err;
@@ -203,11 +205,13 @@ function deInterleaveArray(arr) {
               throw err;
           }
           if(rows.length == 0){
-            db.run("INSERT INTO AlexaData(id, url, type, xpath, location, timeRecorded) VALUES(NULL, ?, ?, ?, ?, datetime('now', 'localtime'))", [settings.url,e.type,e.xpathInfo,JSON.stringify(e.locationInfo)], (err) => {
+            let nativeEventVal = (nativeEvents.includes(e.type)) ? 1 : 0
+            db.run("INSERT INTO AlexaData(id, url, type, xpath, location, timeRecorded, nativeEvent) VALUES(NULL, ?, ?, ?, ?, datetime('now', 'localtime'), ?)", [settings.url,e.type,e.xpathInfo,JSON.stringify(e.locationInfo), nativeEventVal], (err) => {
               if(err) {
                 return console.log(err.message); 
               }
               numberOfNewDBRecordsForURL+= 1
+              console.log("Added " + numberOfNewDBRecordsForURL + " new records for " + settings.url)
             });
           }
       });
@@ -216,9 +220,7 @@ function deInterleaveArray(arr) {
 
       });
 
-      
-
-      console.log("Added " + numberOfNewDBRecordsForURL + " new records for " + settings.url)
+    
       callback()
 
     //   db.all(`SELECT * FROM AlexaData`, [], (err, rows) => {
@@ -240,10 +242,10 @@ function deInterleaveArray(arr) {
 
     await cdp.send('Runtime.releaseObjectGroup', { objectGroup: 'romeno' });
 
-    //await browser.close();
+    await browser.close();
     
   } catch (err) {
-    console.error(err);
+    callback()
   }
   
   
@@ -271,12 +273,18 @@ var async = require('async');
 var inputFile='./top-1m.csv';
 
 var parser = parse({delimiter: ','}, function (err, data) {
-  async.eachSeries(data, function (line, callback) {
+  async.eachSeries(data, function (line, next) {
     // do something with the line
     let url = "http://www." + line[1]
     console.log("url: ", url)
-    if(parseInt(line[0]) < 10) {
+    let lineNum = parseInt(line[0])
+    if(lineNum < 52) {
+      next()
+      return
+    }
+    if(lineNum < 1000) {
       //console.log(line)
+      try {
         const settings = {
           url: url,
           getScriptSource : false,
@@ -284,7 +292,11 @@ var parser = parse({delimiter: ','}, function (err, data) {
           cdpHighlight: true,
           puppeteerManualHighlight : false
         }
-        main(settings, callback)
+        main(settings, next)
+      } catch {
+        next()
+      }
+        
     }
       
   })
