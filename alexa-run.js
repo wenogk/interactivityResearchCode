@@ -221,7 +221,7 @@ function deInterleaveArray(arr) {
       });
 
     
-      callback()
+      
 
     //   db.all(`SELECT * FROM AlexaData`, [], (err, rows) => {
     //     if (err) {
@@ -243,6 +243,8 @@ function deInterleaveArray(arr) {
     await cdp.send('Runtime.releaseObjectGroup', { objectGroup: 'romeno' });
 
     await browser.close();
+
+    callback()
     
   } catch (err) {
     callback()
@@ -278,11 +280,11 @@ var parser = parse({delimiter: ','}, function (err, data) {
     let url = "http://www." + line[1]
     console.log("url: ", url)
     let lineNum = parseInt(line[0])
-    if(lineNum < 52) {
+    if(lineNum < 622) {
       next()
       return
     }
-    if(lineNum < 1000) {
+    if(lineNum < 1001) {
       //console.log(line)
       try {
         const settings = {
