@@ -280,11 +280,11 @@ var parser = parse({delimiter: ','}, function (err, data) {
     let url = "http://www." + line[1]
     console.log("url: ", url)
     let lineNum = parseInt(line[0])
-    if(lineNum < 622) {
+    if(lineNum < 0) {
       next()
       return
     }
-    if(lineNum < 1001) {
+    if(lineNum < 10000000) {
       //console.log(line)
       try {
         const settings = {
