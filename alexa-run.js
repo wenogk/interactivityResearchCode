@@ -50,7 +50,10 @@ function deInterleaveArray(arr) {
 
   try {
 
-    const browser = await puppeteer.launch({headless: true});
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: [ '--proxy-server=192.168.1.117:9300' ]
+    });
     const [page] = await browser.pages();
     await page.setViewport({ width: 1000, height: 700});
     await page.goto(settings.url, {
